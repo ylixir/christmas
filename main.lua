@@ -5,6 +5,13 @@
 -- Copyright (c) 2006-2009 LOVE Development Team
 -------------------------------------------------
 
+grinch = {}
+grinch["speed"] = 200
+grinch["width"], grinch["height"] = 180,204
+grinch["position"]=0
+
+--grinch["image"]:getDimensions() doesn't work?
+
 function love.load()
 	
 	-- The amazing music.
@@ -18,7 +25,10 @@ function love.load()
 	logo = love.graphics.newImage("love.png")
 	--]]
 	gun = love.graphics.newImage("grinch_gun.png")
-	grinch = love.graphics.newImage("grinch_no_gun.png")
+
+	grinch["image"] = love.graphics.newImage("grinch_no_gun.png")
+        grinch["gun"] = love.graphics.newImage("grinch_gun.png")
+
 	cloud = love.graphics.newImage("cloud_plain.png")
 
 	-- Set the background color to green.
@@ -49,20 +59,21 @@ function love.update(dt)
 	if love.keyboard.isDown('down') then
 		nekochan.y = nekochan.y + 200*dt
 	end
+	--]]
 	if love.keyboard.isDown('left') then
-		nekochan.x = nekochan.x - 200*dt
+		grinch.position = grinch.position - grinch.speed*dt
 	end
 	if love.keyboard.isDown('right') then
-		nekochan.x = nekochan.x + 200*dt
+		grinch.position = grinch.position + grinch.speed*dt
 	end
-	--]]
-	try_spawn_cloud(dt)
 	
 	--nekochan:update(dt)
 	
-    
-	-- Update clouds, iterating backwards for safe removal of off-screen ones.
+        --get the size of our window
 	local width = love.graphics.getWidth()
+	local height = love.graphics.getHeight()
+      
+	-- Update clouds, iterating backwards for safe removal of off-screen ones.
 	for k=#clouds,1,-1 do
 		local c = clouds[k]
 		c.x = c.x + c.s * dt
@@ -70,18 +81,20 @@ function love.update(dt)
 			table.remove(clouds, k)
 		end
 	end
+
+	try_spawn_cloud(dt)
 	
+        --get the top coordinate for the grinch
+        grinch["top"] = height - grinch.height
 end
 
 function love.draw()
-
-	--love.graphics.draw(logo, 400, 380, 0, 1, 1, 128, 64)
-	
+        --draw the clouds first, they are in the background
 	for k, c in ipairs(clouds) do
 		love.graphics.draw(cloud, c.x, c.y)
 	end
 	
-	love.graphics.draw(grinch, 400, 380, 0, 1, 1, 128, 64)
+	love.graphics.draw(grinch.image, grinch.position, grinch.top)
 	--nekochan:render()
 	
 end
@@ -117,7 +130,7 @@ end
 clouds = {}
 
 cloud_buffer = 0
-cloud_interval = 1
+cloud_interval = 5
 
 -- Inserts a new cloud.
 function try_spawn_cloud(dt)
