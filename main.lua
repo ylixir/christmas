@@ -5,30 +5,10 @@
 -- Copyright (c) 2006-2009 LOVE Development Team
 -------------------------------------------------
 
-grinch = {}
-grinch["speed"] = 200
-grinch["width"], grinch["height"] = 180,204
-grinch["position"]=0
-
---grinch["image"]:getDimensions() doesn't work?
-
 function love.load()
-	
-	-- The amazing music.
-	--music = love.audio.newSource("prondisk.xm")
-	
 	-- The various images used.
-	--[[
-	body = love.graphics.newImage("body.png")
-	ear = love.graphics.newImage("ear.png")
-	face = love.graphics.newImage("face.png")
-	logo = love.graphics.newImage("love.png")
-	--]]
-	gun = love.graphics.newImage("grinch_gun.png")
-
 	grinch["image"] = love.graphics.newImage("grinch_no_gun.png")
         grinch["gun"] = love.graphics.newImage("grinch_gun.png")
-
 	cloud = love.graphics.newImage("cloud_plain.png")
 
 	-- Set the background color to green.
@@ -40,40 +20,19 @@ function love.load()
 	end
 	
 	love.graphics.setColor(255, 255, 255, 200)
-	
-	--love.audio.play(music, 0)
 end
 
 function love.update(dt)
---[[
-	if love.joystick.isDown(1, 1) then
-		nekochan:update(dt)
-		nekochan:update(dt)
-		nekochan:update(dt)
-	end
-	nekochan.x = nekochan.x + love.joystick.getAxis(1, 1)*200*dt
-	nekochan.y = nekochan.y + love.joystick.getAxis(1, 2)*200*dt
-	if love.keyboard.isDown('up') then
-		nekochan.y = nekochan.y - 200*dt
-	end
-	if love.keyboard.isDown('down') then
-		nekochan.y = nekochan.y + 200*dt
-	end
-	--]]
-	if love.keyboard.isDown('left') then
-		grinch.position = grinch.position - grinch.speed*dt
-	end
-	if love.keyboard.isDown('right') then
-		grinch.position = grinch.position + grinch.speed*dt
-	end
-	
-	--nekochan:update(dt)
-	
         --get the size of our window
-	local width = love.graphics.getWidth()
-	local height = love.graphics.getHeight()
-      
+	width = love.graphics.getWidth()
+	height = love.graphics.getHeight()
+	
+        --get the top coordinate for the grinch
+        grinch["top"] = height - grinch.height
+
+
 	-- Update clouds, iterating backwards for safe removal of off-screen ones.
+	try_spawn_cloud(dt)
 	for k=#clouds,1,-1 do
 		local c = clouds[k]
 		c.x = c.x + c.s * dt
@@ -81,11 +40,13 @@ function love.update(dt)
 			table.remove(clouds, k)
 		end
 	end
-
-	try_spawn_cloud(dt)
-	
-        --get the top coordinate for the grinch
-        grinch["top"] = height - grinch.height
+        --move the grinch as necessary
+	if love.keyboard.isDown('left') or love.keyboard.isDown('h') then
+	  grinch:left(dt)
+	end
+	if love.keyboard.isDown('right') or love.keyboard.isDown('l') then
+	  grinch:right(dt)
+	end
 end
 
 function love.draw()
@@ -95,6 +56,7 @@ function love.draw()
 	end
 	
 	love.graphics.draw(grinch.image, grinch.position, grinch.top)
+	love.graphics.draw(grinch.gun, grinch.position, grinch.top)
 	--nekochan:render()
 	
 end
@@ -105,27 +67,29 @@ function love.keypressed(k)
 	end
 end
 
---[[
-nekochan = {
-	x = 400, 
-	y = 250, 
-	a = 0
+grinch = {
+  speed  = 200,
+  width  = 180,
+  height = 204,
+  left_offset = 18,
+  right_offset = 112,
+  position = 18
 }
 
-function nekochan:update(dt)
-		self.a = self.a + 10 * dt	
+function grinch:left(dt)
+  grinch.position = grinch.position - grinch.speed*dt
+  if grinch.position < 0 - grinch.left_offset then
+    grinch.position = 0 - grinch.left_offset
+  end
 end
 
-function nekochan:render()
-	love.graphics.draw(body, self.x, self.y, 0, 1, 1, 64, 64)
-	love.graphics.draw(face, self.x, self.y + math.sin(self.a/5) * 3, 0, 1, 1, 64, 64)
-	local r = 1 + math.sin(self.a*math.pi/20)
-	for i = 1,10 do
-		love.graphics.draw(ear, self.x, self.y, (i * math.pi*2/10) + self.a/10, 1, 1, 16, 64+10*r)
-	end
-	
+function grinch:right(dt)
+  grinch.position = grinch.position + grinch.speed*dt
+  if grinch.position > width - grinch.right_offset then
+    grinch.position = width - grinch.right_offset
+  end
 end
---]]
+
 -- Holds the passing clouds.
 clouds = {}
 
@@ -141,7 +105,6 @@ function try_spawn_cloud(dt)
 		cloud_buffer = 0
 		spawn_cloud(-512, math.random(-50, 500), 80 + math.random(0, 50))
 	end
-		
 end
 
 function spawn_cloud(xpos, ypos, speed)
