@@ -1,4 +1,4 @@
 
 function love.conf(t)
-	t.title = "Passing Clouds"
+	t.title = "Merry X-mas!"
 end
