@@ -29,6 +29,12 @@ function love.load()
         katie["move"] = boss_move
         katie["jaw_update"]=boss_jaw_update
         sad_kids = love.graphics.newImage("sad_kids.jpg")
+        sad_aidan = love.graphics.newImage("sad_aidan.jpg")
+        sad_val = love.graphics.newImage("sad_val.jpg")
+        sad_mouth = love.graphics.newImage("sad_mouth.png")
+        cool_baby = love.graphics.newImage("cool_baby.jpg")
+        hate = love.graphics.newImage("h8.png")
+        xmas = love.graphics.newImage("xmas.png")
 
         --for i,v in ipairs(tear_sources) do
         --  v["draw"] = tear_draw
@@ -47,7 +53,7 @@ end
 --1 is present shooter
 --2 is boss level
 --3 is ending
-game_state = 2
+game_state = 0
 
 function love.update(dt)
   --get the size of our window
@@ -58,6 +64,8 @@ function love.update(dt)
     title_update(dt)
   elseif game_state == 1 then
     present_shooter_update(dt)
+  elseif game_state < 2 then
+    present_transition_update(dt)
   elseif game_state == 2 then
     boss_shooter_update(dt)
   elseif game_state == 3 then
@@ -70,11 +78,27 @@ function love.draw()
     title_draw()
   elseif game_state == 1 then
     present_shooter_draw()
+  elseif game_state < 2 then
+    present_transition_draw()
   elseif game_state == 2 then
     boss_shooter_draw()
   elseif game_state == 3 then
     ending_draw()
   end
+end
+
+function render_controls()
+  love.graphics.setColor(0,255,0,150)
+  love.graphics.rectangle("fill",0, height-150,250,150)
+  love.graphics.rectangle("fill",width-250, height-150,250,150)
+  love.graphics.setColor(255,0,0,150)
+  love.graphics.triangle("fill",100,height,50,height-25,100,height-50)
+  love.graphics.rectangle("fill",100,height-40,50,30)
+  love.graphics.triangle("fill",width-100,height,width-50,height-25,width-100,height-50)
+  love.graphics.rectangle("fill",width-150,height-40,50,30)
+  love.graphics.print("left",100,height-30)
+  love.graphics.print("right",width-130,height-30)
+  love.graphics.print("space",350,height-30)
 end
 
 thief = {
@@ -134,11 +158,10 @@ function present_shooter_update(dt)
     end
     if CheckCollision(present.x+present.hit_x,present.y+present.hit_y,present.hit_w,present.hit_h,v.x,v.y,5,10) then
       table.remove(shots,i)
-      present.x = 900
+      present.x = width+1
       presents_killed = presents_killed + 1
-      if presents_killed == 4 then
-        game_state = 3
-      end
+      game_state = 1.5
+      transition_time = 3
     end
   end
 
@@ -149,6 +172,7 @@ function present_shooter_update(dt)
 end
 
 function present_shooter_draw()
+        render_controls()
         --draw the clouds first, they are in the background
 	love.graphics.setColor(255, 255, 255, 200)
 	for k, c in ipairs(clouds) do
@@ -162,6 +186,40 @@ function present_shooter_draw()
 	
         grinch:render()
         present:render()
+end
+
+transition_time = 5
+
+function present_transition_update(dt)
+  transition_time = transition_time - dt
+  if presents_killed == 4 then
+    if transition_time < 0 then game_state = 2 end
+    jon:jaw_update(dt)
+    katie:jaw_update(dt)
+  elseif transition_time < 0 then
+    game_state = 1
+  end
+end
+
+function present_transition_draw()
+  love.graphics.setColor(255, 255, 255, 255)
+  if presents_killed == 1 then
+    love.graphics.draw(cool_baby,0,-200)
+    love.graphics.setColor(0, 255, 0, 100)
+    love.graphics.draw(hate,5,5)
+    love.graphics.setColor(255, 255, 255, 150)
+    love.graphics.draw(hate,0,0)
+  elseif presents_killed == 2 then
+    love.graphics.draw(sad_val,0,0)
+    love.graphics.draw(sad_mouth,425,265,0,2/3,1/2)
+  elseif presents_killed == 3 then
+    love.graphics.draw(sad_aidan,0,0)
+  elseif presents_killed == 4 then
+    jon:render()
+    katie:render()
+    love.graphics.print("Hey, you shot our presents and made our kids sad!",300,300)
+    love.graphics.print("We are gonna get you. With lasers!",350,350)
+  end
 end
 
 jon = {
@@ -189,7 +247,9 @@ jon = {
   hit_w = 130,
   hit_h = 160,
   health = 6,
-  red_time = 0
+  red_time = 0,
+  lasers = {{x=33,y=40},{x=95,y=43}},
+  laser_time = 2,
 }
 
 katie = {
@@ -218,6 +278,8 @@ katie = {
   hit_h = 190,
   health = 6,
   red_time = 0,
+  lasers = {{x=55,y=90},{x=115,y=90}},
+  laser_time = 2,
 }
 
 function boss_render(self)
@@ -228,17 +290,32 @@ function boss_render(self)
   end
   love.graphics.draw(self.head,self.x+self.x_offset,self.y+self.y_offset,0,self.scale,self.scale)
   love.graphics.draw(self.jaw,self.x+self.x_offset,self.y+self.y_offset+self.jaw_offset,0,self.scale,self.scale)
+  if self.laser_time < 1/2 then
+  love.graphics.setColor(255, 0, 0, 50)
+    for i,v in ipairs(self.lasers) do
+      love.graphics.circle("fill",self.x+v.x,self.y+v.y,10,10)
+    end
+  end
+ if self.laser_time < 0 then
+     for i,v in ipairs(self.lasers) do
+      love.graphics.line(self.x+v.x,self.y+v.y,self.x+v.x,height)
+    end
+  end
   --hitbox
-  love.graphics.setColor(255, 255, 0, 255)
-  love.graphics.rectangle("line",self.x+self.hit_x,self.y+self.hit_y,self.hit_w,self.hit_h)
+  --love.graphics.setColor(255, 255, 0, 255)
+  --love.graphics.rectangle("line",self.x+self.hit_x,self.y+self.hit_y,self.hit_w,self.hit_h)
 end
 
 function boss_move(self, dt)
+  self.laser_time = self.laser_time - dt
   self.speed_time = self.speed_time - dt
   if self.speed_time <=0 then
     self.speed_time = math.random()
     self.h_speed = math.random(self.speed_min,self.speed_max)
     self.v_speed = math.random(self.speed_min,self.speed_max)
+  end
+  if self.laser_time < -1 then
+    self.laser_time = math.random(1,5)
   end
   self.x = self.x+self.h_speed*dt
   self.y = self.y+self.v_speed*dt
@@ -292,9 +369,29 @@ function boss_shooter_update(dt)
     end
   end
 
-  if CheckCollision(jon.x+jon.hit_x,jon.y+jon.hit_y,jon.hit_w,jon.hit_h,grinch.position+grinch.hit_x,grinch.top+grinch.hit_y,grinch.hit_w,grinch.hit_h)
-  or CheckCollision(katie.x+katie.hit_x,katie.y+katie.hit_y,katie.hit_w,katie.hit_h,grinch.position+grinch.hit_x,grinch.top+grinch.hit_y,grinch.hit_w,grinch.hit_h) then
-    grinch.red_time = 1
+  if jon.health > 0 then
+    if jon.laser_time < 0 then
+      for i,v in ipairs(jon.lasers) do
+        if jon.x+v.x < grinch.position+grinch.hit_x+grinch.hit_w and jon.x+v.x > grinch.position+grinch.hit_x then
+          grinch.red_time = 1
+        end
+      end
+    end
+    if CheckCollision(jon.x+jon.hit_x,jon.y+jon.hit_y,jon.hit_w,jon.hit_h,grinch.position+grinch.hit_x,grinch.top+grinch.hit_y,grinch.hit_w,grinch.hit_h) then
+      grinch.red_time = 1
+    end
+  end
+  if katie.health > 0 then
+    if katie.laser_time < 0 then
+      for i,v in ipairs(katie.lasers) do
+        if katie.x+v.x < grinch.position+grinch.hit_x+grinch.hit_w and katie.x+v.x > grinch.position+grinch.hit_x then
+          grinch.red_time = 1
+        end
+      end
+    end
+    if CheckCollision(katie.x+katie.hit_x,katie.y+katie.hit_y,katie.hit_w,katie.hit_h,grinch.position+grinch.hit_x,grinch.top+grinch.hit_y,grinch.hit_w,grinch.hit_h) then
+      grinch.red_time = 1
+    end
   end
   if jon.red_time > 0 then
     jon.red_time = jon.red_time - dt
@@ -307,12 +404,16 @@ function boss_shooter_update(dt)
   jon:move(dt)
   katie:move(dt)
   grinch:update(dt)
+
   if jon.health <=0 and katie.health <= 0 and jon.red_time <= 0 and katie.red_time <=0 then
     game_state = 3
   end
 end
 
 function boss_shooter_draw()
+  render_controls()
+  love.graphics.print("Hey, you shot our presents and made our kids sad!",300,300)
+  love.graphics.print("We are gonna get you. With lasers!",350,350)
   --draw the clouds first, they are in the background
   love.graphics.setColor(255, 255, 255, 200)
   for k, c in ipairs(clouds) do
@@ -343,34 +444,84 @@ function tear_draw(self)
   love.graphics.polygon('fill', self.x+10, self.y+10, self.x+20, self.y+10, self.x+15, self.y+0)
 end
 
+end_time = 10
+
 function ending_update(dt)
-  tear_time = tear_time - dt
-  if tear_time < 0 then
-    for i,v in ipairs(tear_sources) do
-      table.insert(tears, { x = v.x, y = v.y, render = tear_draw} )
+  if end_time > 0 then
+    end_time = end_time - dt
+    tear_time = tear_time - dt
+    if tear_time < 0 then
+      for i,v in ipairs(tear_sources) do
+        table.insert(tears, { x = v.x, y = v.y, render = tear_draw} )
+      end
+      tear_time = .35
     end
-    tear_time = .35
-  end
-  for i,v in ipairs(tears) do
-    v.y = v.y+tear_speed*dt
-    if v.y+height then
-      table.remove(shots,i)
-    else
+    for i,v in ipairs(tears) do
+      v.y = v.y+tear_speed*dt
+      if v.y+height then
+        table.remove(shots,i)
+      else
+      end
     end
+  else
   end
 end
 
 function ending_draw()
-  love.graphics.setColor(255, 255, 255, 255)
-  love.graphics.draw(sad_kids,0,0)
-  for i,v in ipairs(tears) do
-    v:render()
+  if end_time > 0 then
+    love.graphics.setColor(255, 255, 255, 255)
+    love.graphics.draw(sad_kids,0,0)
+    for i,v in ipairs(tears) do
+      v:render()
+    end
+    love.graphics.setColor(255, 255, 255, 155)
+    love.graphics.triangle("fill",440,40,700,40,440,300)
+    if end_time < 9 then
+      love.graphics.print("You destroyed their gifts.",450,50)
+      if end_time < 8 then
+        love.graphics.print("You orphaned them.",450,80)
+        if end_time < 7 then
+          love.graphics.print("Merry Christmas.",450,110)
+          if end_time < 6 then
+            love.graphics.print("You animal.",450,140)
+            if end_time < 4 then
+              love.graphics.print("jk",450,170)
+              if end_time < 3.4 then
+                love.graphics.print("jk",450,200)
+              end
+            end
+          end
+        end
+      end
+    end
+  else
+    love.graphics.setColor(255, 255, 255, 255)
+    love.graphics.draw(xmas,0,0)
   end
 end
 
 function love.mousepressed( x, y, button )
   if game_state == 0 then
     game_state = 0.5
+  elseif game_state == 1 or game_state == 2 then
+    if CheckCollision(x,y,0,0,0,height-150,250,150) then
+      grinch.position = grinch.position-20
+    elseif CheckCollision(x,y,0,0,width-250,height-150,250,150) then
+      grinch.position = grinch.position+20
+    else
+      try_shot()
+    end
+  --elseif game_state == 1.5 then
+  --  game_state = presents_killed == 4 and 2 or 1
+  elseif game_state == 3 then
+    if end_time <= 0 then
+      thief.x = -300
+      thief.offset = 0
+      game_state = 0
+      presents_killed = 0
+      jon.health = 6
+      katie.health = 6
+    end
   end
 end
 
@@ -378,6 +529,11 @@ function love.keypressed(k)
   if (game_state == 1 or game_state == 2) and k == " " then
     try_shot()
   end
+  --[[
+  if game_state == 1.5 then
+    game_state = presents_killed == 4 and 2 or 1
+  end
+  --]]
 end
 
 grinch = {
@@ -445,8 +601,8 @@ function grinch:render()
   love.graphics.draw(self.image, self.position, self.top)
   love.graphics.draw(self.gun, self.position, self.top+self.gun_top)
   --hitbox
-  love.graphics.setColor(255, 255, 0, 255)
-  love.graphics.rectangle("line",self.position+self.hit_x,self.top+self.hit_y,self.hit_w,self.hit_h)
+  --love.graphics.setColor(255, 255, 0, 255)
+  --love.graphics.rectangle("line",self.position+self.hit_x,self.top+self.hit_y,self.hit_w,self.hit_h)
 end
 
 --the presents
@@ -515,7 +671,7 @@ function present:render()
   love.graphics.draw(self.limbs, self.x-50, self.y,self.rotation-self.arm_rot,-1,1,-20,55)
   love.graphics.draw(self.image, self.x-50, self.y,self.rotation,1,1,100,80)
   --hitbox
-  love.graphics.rectangle("line",self.x+self.hit_x,self.y+self.hit_y,self.hit_w,self.hit_h)
+  --love.graphics.rectangle("line",self.x+self.hit_x,self.y+self.hit_y,self.hit_w,self.hit_h)
 end
 
 --shots will have x,y,speed
